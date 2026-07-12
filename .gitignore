@@ -5,3 +5,4 @@ __pycache__/
 ml/data/*.csv
 ml/models/*.pth
 .ipynb_checkpoints/
+db.sqlite3
