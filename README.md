@@ -107,7 +107,7 @@ Django models mirror the processed CSV outputs. A custom management command (`lo
 
 ### 1. Clone and set up the environment
 ```bash
-git clone <[repo-url](https://github.com/MariaGenova36/smart-shop-assistant)>
+git clone <https://github.com/MariaGenova36/smart-shop-assistant>
 cd smart-shop-assistant
 python -m venv venv
 # Windows:
