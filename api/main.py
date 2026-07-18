@@ -5,14 +5,14 @@ import torch.nn.functional as F
 
 app = FastAPI(title="Smart Shop Assistant API")
 
-# Зареждаме данните ВЕДНЪЖ, при стартиране на сървъра
+# Load the data once when server is started
 products = pd.read_csv('../ml/data/products_clean.csv')
 
-# Зареждаме и business insights данните
+# Load the business insides data
 category_sentiment = pd.read_csv('../ml/data/category_sentiment_summary.csv')
 category_ratings = pd.read_csv('../ml/data/category_ratings_summary.csv')
 
-# Подготвяме one-hot матрицата (същото като в notebook-а)
+# Ready the one-hot matrix (same as in notebook)
 category_encoded = pd.get_dummies(products['product_category_name_english'])
 category_matrix = torch.tensor(category_encoded.values.astype(float), dtype=torch.float32)
 
@@ -26,7 +26,7 @@ def read_root():
 
 @app.get("/recommendations/{product_id}")
 def get_recommendations(product_id: str, top_n: int = 5):
-    # Намираме индекса на продукта по неговото product_id
+    # Find the index of the product by using product_id
     matches = products.index[products['product_id'] == product_id]
     
     if len(matches) == 0:
@@ -34,7 +34,7 @@ def get_recommendations(product_id: str, top_n: int = 5):
     
     product_index = matches[0]
     
-    # Същата логика като в notebook-а
+    # Sme logic as in notebook
     target_vector = category_matrix[product_index].unsqueeze(0)
     similarities = F.cosine_similarity(target_vector, category_matrix, dim=1)
     
@@ -52,7 +52,7 @@ def get_recommendations(product_id: str, top_n: int = 5):
 
 @app.get("/insights/categories")
 def get_category_insights():
-    # Обединяваме двете таблици (sentiment + звезди) по категория
+    # Combine the two tables (sentiment + звезди) by catgegories
     combined = category_ratings.merge(category_sentiment, on='category', how='inner')
     combined = combined.sort_values('avg_sentiment_score')
     
