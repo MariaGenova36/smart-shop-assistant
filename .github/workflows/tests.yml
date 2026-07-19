@@ -22,8 +22,9 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install -r requirements.txt
-
       - name: Run tests
+        env:
+          DATA_DIR: test_data
         run: |
           cd api
           python -m pytest

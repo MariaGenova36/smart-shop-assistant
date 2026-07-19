@@ -2,15 +2,18 @@ from fastapi import FastAPI, HTTPException
 import pandas as pd
 import torch
 import torch.nn.functional as F
+import os
+
+DATA_DIR = os.getenv('DATA_DIR', '../ml/data')
 
 app = FastAPI(title="Smart Shop Assistant API")
 
 # Load the data once when server is started
-products = pd.read_csv('../ml/data/products_clean.csv')
+products = pd.read_csv(f'{DATA_DIR}/products_clean.csv')
 
-# Load the business insides data
-category_sentiment = pd.read_csv('../ml/data/category_sentiment_summary.csv')
-category_ratings = pd.read_csv('../ml/data/category_ratings_summary.csv')
+# Load the business insights data
+category_sentiment = pd.read_csv(f'{DATA_DIR}/category_sentiment_summary.csv')
+category_ratings = pd.read_csv(f'{DATA_DIR}/category_ratings_summary.csv')
 
 # Ready the one-hot matrix (same as in notebook)
 category_encoded = pd.get_dummies(products['product_category_name_english'])
