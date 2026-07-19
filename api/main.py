@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import torch
 import torch.nn.functional as F
@@ -7,6 +8,14 @@ import os
 DATA_DIR = os.getenv('DATA_DIR', '../ml/data')
 
 app = FastAPI(title="Smart Shop Assistant API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # Load the data once when server is started
 products = pd.read_csv(f'{DATA_DIR}/products_clean.csv')
