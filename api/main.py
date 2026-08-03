@@ -4,8 +4,24 @@ import pandas as pd
 import torch
 import torch.nn.functional as F
 import os
+from sentence_transformers import SentenceTransformer
+import faiss
+from groq import Groq
+from dotenv import load_dotenv
+from pydantic import BaseModel
+
+from pathlib import Path
+
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / '.env')
 
 DATA_DIR = os.getenv('DATA_DIR', '../ml/data')
+
+groq_client = Groq(api_key=os.getenv('GROQ_API_KEY'))
+embed_model = SentenceTransformer('paraphrase-multilingual-MiniLM-L12-v2')
+faiss_index = faiss.read_index(f'{DATA_DIR}/review_embeddings.index')
+rag_reviews = pd.read_csv(f'{DATA_DIR}/rag_reviews.csv')
+
+print(f"RAG system loaded: {faiss_index.ntotal} reviews indexed")
 
 app = FastAPI(title="Smart Shop Assistant API")
 
@@ -29,7 +45,6 @@ category_encoded = pd.get_dummies(products['product_category_name_english'])
 category_matrix = torch.tensor(category_encoded.values.astype(float), dtype=torch.float32)
 
 print(f"API started. Loaded {len(products)} products.")
-
 
 @app.get("/")
 def read_root():
@@ -86,3 +101,45 @@ def get_single_category_insight(category_name: str):
         result.update(sentiment_row.iloc[0].to_dict())
     
     return result
+
+from pydantic import BaseModel
+
+
+class ChatRequest(BaseModel):
+    question: str
+
+
+@app.post("/chat")
+def chat_with_reviews(request: ChatRequest):
+    # Step 1: превръщаме въпроса в embedding
+    question_embedding = embed_model.encode([request.question]).astype('float32')
+
+    # Step 2: намираме топ 5 най-подобни ревюta чрез FAISS
+    distances, indices = faiss_index.search(question_embedding, k=5)
+    relevant_reviews = rag_reviews.iloc[indices[0]]['review_comment_message'].tolist()
+
+    # Step 3: строим контекст за LLM-а
+    context = "\n".join([f"- {r}" for r in relevant_reviews])
+
+    prompt = f"""You are a helpful assistant analyzing customer reviews for an e-commerce store.
+Based ONLY on the following real customer reviews (originally in Portuguese), answer the question.
+
+Reviews:
+{context}
+
+Question: {request.question}
+
+Answer in English, concisely, based only on the reviews above."""
+
+    # Step 4: викаме Groq API
+    response = groq_client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=300,
+    )
+
+    return {
+        "question": request.question,
+        "answer": response.choices[0].message.content,
+        "sources_used": len(relevant_reviews)
+    }
