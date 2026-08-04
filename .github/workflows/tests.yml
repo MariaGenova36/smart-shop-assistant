@@ -25,6 +25,7 @@ jobs:
       - name: Run tests
         env:
           DATA_DIR: test_data
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
         run: |
           cd api
           python -m pytest
